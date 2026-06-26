@@ -1,0 +1,39 @@
+package ch.sumex.schadenflow.user;
+
+import ch.sumex.schadenflow.claim.Role;
+import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.testcontainers.service.connection.ServiceConnection;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.testcontainers.containers.PostgreSQLContainer;
+import org.testcontainers.junit.jupiter.Container;
+import org.testcontainers.junit.jupiter.Testcontainers;
+
+import static org.assertj.core.api.Assertions.assertThat;
+
+@SpringBootTest
+@Testcontainers
+class UserPersistenceIT {
+
+    @Container
+    @ServiceConnection
+    static PostgreSQLContainer<?> postgres = new PostgreSQLContainer<>("postgres:16-alpine");
+
+    @Autowired
+    private UserRepository userRepository;
+
+    @Test
+    void seedUsersExistAndPasswordsVerify() {
+        BCryptPasswordEncoder encoder = new BCryptPasswordEncoder();
+        var admin = userRepository.findByUsername("admin").orElseThrow();
+        assertThat(admin.getRole()).isEqualTo(Role.ADMIN);
+        assertThat(encoder.matches("password123", admin.getPasswordHash())).isTrue();
+        assertThat(encoder.matches("wrong", admin.getPasswordHash())).isFalse();
+
+        assertThat(userRepository.findByUsername("anspruchsteller").orElseThrow().getRole())
+                .isEqualTo(Role.ANSPRUCHSTELLER);
+        assertThat(userRepository.findByUsername("sachbearbeiter").orElseThrow().getRole())
+                .isEqualTo(Role.SACHBEARBEITER);
+    }
+}
