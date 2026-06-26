@@ -22,30 +22,30 @@ public class AuditEntry {
     private UUID claimId;
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "from_state")
+    @Column(name = "from_state", length = 20)
     private ClaimState fromState;
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "to_state", nullable = false)
+    @Column(name = "to_state", nullable = false, length = 20)
     private ClaimState toState;
 
     @Column(name = "actor_id", nullable = false)
     private UUID actorId;
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "actor_role", nullable = false)
+    @Column(name = "actor_role", nullable = false, length = 20)
     private Role actorRole;
 
     @Column
     private String reason;
 
-    @Column(nullable = false)
-    private Instant timestamp;
+    @Column(name = "occurred_at", nullable = false)
+    private Instant occurredAt;
 
     protected AuditEntry() { }
 
     public AuditEntry(UUID id, UUID claimId, ClaimState fromState, ClaimState toState,
-                      UUID actorId, Role actorRole, String reason, Instant timestamp) {
+                      UUID actorId, Role actorRole, String reason, Instant occurredAt) {
         this.id = id;
         this.claimId = claimId;
         this.fromState = fromState;
@@ -53,7 +53,7 @@ public class AuditEntry {
         this.actorId = actorId;
         this.actorRole = actorRole;
         this.reason = reason;
-        this.timestamp = timestamp;
+        this.occurredAt = occurredAt;
     }
 
     public UUID getId() { return id; }
@@ -63,5 +63,5 @@ public class AuditEntry {
     public UUID getActorId() { return actorId; }
     public Role getActorRole() { return actorRole; }
     public String getReason() { return reason; }
-    public Instant getTimestamp() { return timestamp; }
+    public Instant getOccurredAt() { return occurredAt; }
 }

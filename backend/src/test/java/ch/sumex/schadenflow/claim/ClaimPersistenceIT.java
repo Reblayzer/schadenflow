@@ -3,6 +3,7 @@ package ch.sumex.schadenflow.claim;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.UUID;
+import org.springframework.data.domain.Pageable;
 
 import ch.sumex.schadenflow.audit.AuditEntry;
 import ch.sumex.schadenflow.audit.AuditRepository;
@@ -41,7 +42,19 @@ class ClaimPersistenceIT {
         auditRepository.save(new AuditEntry(UUID.randomUUID(), claimId, null,
                 ClaimState.EINGEREICHT, claimantId, Role.ANSPRUCHSTELLER, null, now));
 
-        assertThat(claimRepository.findById(claimId)).isPresent();
-        assertThat(auditRepository.findByClaimIdOrderByTimestampAsc(claimId)).hasSize(1);
+        Claim savedClaim = claimRepository.findById(claimId).orElseThrow();
+        assertThat(savedClaim.getState()).isEqualTo(ClaimState.EINGEREICHT);
+        assertThat(savedClaim.getAmount()).isEqualByComparingTo(new BigDecimal("250.00"));
+
+        java.util.List<AuditEntry> entries =
+                auditRepository.findByClaimIdOrderByOccurredAtAsc(claimId);
+        assertThat(entries).hasSize(1);
+        AuditEntry entry = entries.get(0);
+        assertThat(entry.getFromState()).isNull();
+        assertThat(entry.getToState()).isEqualTo(ClaimState.EINGEREICHT);
+        assertThat(entry.getOccurredAt()).isNotNull();
+
+        assertThat(claimRepository.findByState(ClaimState.EINGEREICHT, Pageable.unpaged()))
+                .anyMatch(c -> c.getId().equals(claimId));
     }
 }

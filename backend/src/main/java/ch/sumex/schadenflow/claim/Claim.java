@@ -20,20 +20,20 @@ public class Claim {
     @Column(name = "claimant_id", nullable = false)
     private UUID claimantId;
 
-    @Column(nullable = false)
+    @Column(nullable = false, length = 200)
     private String title;
 
     @Column(nullable = false)
     private String description;
 
-    @Column
+    @Column(length = 100)
     private String category;
 
-    @Column(nullable = false)
+    @Column(nullable = false, precision = 12, scale = 2)
     private BigDecimal amount;
 
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
+    @Column(nullable = false, length = 20)
     private ClaimState state;
 
     @Column(name = "created_at", nullable = false)

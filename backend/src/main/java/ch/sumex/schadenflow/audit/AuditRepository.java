@@ -5,5 +5,5 @@ import java.util.UUID;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 public interface AuditRepository extends JpaRepository<AuditEntry, UUID> {
-    List<AuditEntry> findByClaimIdOrderByTimestampAsc(UUID claimId);
+    List<AuditEntry> findByClaimIdOrderByOccurredAtAsc(UUID claimId);
 }
