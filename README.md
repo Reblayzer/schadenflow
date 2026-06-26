@@ -110,6 +110,46 @@ the app runs outside a developer laptop:
    with a clear error if the secret equals the dev default (or is shorter than 32
    bytes) outside the `dev` Spring profile.
 
+## AI Triage
+
+A reviewer (`SACHBEARBEITER` or `ADMIN`) can request an AI-generated triage on
+any pre-decision claim (state `EINGEREICHT` or `IN_PRUEFUNG`).
+
+**Endpoints:**
+
+```bash
+# Request an advisory triage (reviewer only, persists nothing)
+POST /api/claims/{id}/triage
+Authorization: Bearer <reviewer-token>
+```
+
+Returns `{ "ok": true, "data": { "summary": "...", "suggestedCategory": "ZAHNARZT", "missingInfoFlags": [...] } }`.
+
+```bash
+# Confirm the human-reviewed category and summary (reviewer only)
+PATCH /api/claims/{id}
+Authorization: Bearer <reviewer-token>
+Content-Type: application/json
+
+{ "category": "ZAHNARZT", "triageSummary": "Bestätigte Zahnbehandlung." }
+```
+
+The AI output is **advisory only** — it is never auto-applied. A caseworker always
+confirms the category and summary via `PATCH` before it is persisted.
+
+**Provider toggle:**
+
+| Variable | Default | Notes |
+|---|---|---|
+| `SCHADENFLOW_TRIAGE_PROVIDER` | `mock` | `mock` (deterministic, no API key, used in CI/tests) or `claude` (real Anthropic API) |
+| `SCHADENFLOW_TRIAGE_MODEL` | `claude-opus-4-8` | Only used when provider is `claude` |
+| `ANTHROPIC_API_KEY` | *(empty)* | Required when provider is `claude` |
+
+The mock provider is deterministic and requires no API key — it is the default for
+all tests and CI. To switch to the real Anthropic adapter in a local Compose run,
+set `SCHADENFLOW_TRIAGE_PROVIDER=claude` and `ANTHROPIC_API_KEY=<your-key>` in
+your environment before running `docker compose up`.
+
 ## Status
 
 Sub-project 1 (infra & skeleton) complete. See `docs/superpowers/specs/` for the

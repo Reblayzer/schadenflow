@@ -24,6 +24,9 @@ services:
       SPRING_DATASOURCE_USERNAME: schadenflow
       SPRING_DATASOURCE_PASSWORD: schadenflow
       SECURITY_JWT_SECRET: ${SECURITY_JWT_SECRET:-dev-only-insecure-secret-change-me-0123456789}
+      SCHADENFLOW_TRIAGE_PROVIDER: ${SCHADENFLOW_TRIAGE_PROVIDER:-mock}
+      SCHADENFLOW_TRIAGE_MODEL: ${SCHADENFLOW_TRIAGE_MODEL:-claude-opus-4-8}
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
     ports:
       - "8080:8080"
     depends_on:
