@@ -31,9 +31,12 @@ class UserPersistenceIT {
         assertThat(encoder.matches("password123", admin.getPasswordHash())).isTrue();
         assertThat(encoder.matches("wrong", admin.getPasswordHash())).isFalse();
 
-        assertThat(userRepository.findByUsername("anspruchsteller").orElseThrow().getRole())
-                .isEqualTo(Role.ANSPRUCHSTELLER);
-        assertThat(userRepository.findByUsername("sachbearbeiter").orElseThrow().getRole())
-                .isEqualTo(Role.SACHBEARBEITER);
+        var anspruchsteller = userRepository.findByUsername("anspruchsteller").orElseThrow();
+        assertThat(anspruchsteller.getRole()).isEqualTo(Role.ANSPRUCHSTELLER);
+        assertThat(encoder.matches("password123", anspruchsteller.getPasswordHash())).isTrue();
+
+        var sachbearbeiter = userRepository.findByUsername("sachbearbeiter").orElseThrow();
+        assertThat(sachbearbeiter.getRole()).isEqualTo(Role.SACHBEARBEITER);
+        assertThat(encoder.matches("password123", sachbearbeiter.getPasswordHash())).isTrue();
     }
 }
