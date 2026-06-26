@@ -131,4 +131,29 @@ class ClaimControllerTest {
                 .andExpect(jsonPath("$.ok").value(true))
                 .andExpect(jsonPath("$.data.state").value("EINGEREICHT"));
     }
+
+    @Test
+    void malformedJsonBodyReturns400() throws Exception {
+        mockMvc.perform(post("/api/claims")
+                        .header("X-Actor-Id", UUID.randomUUID().toString())
+                        .header("X-Actor-Role", "ANSPRUCHSTELLER")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{ not json"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.error.code").value("VALIDATION_ERROR"));
+    }
+
+    @Test
+    void amountOverflowReturns400() throws Exception {
+        String body = """
+            {"claimantId":"%s","title":"Broken arm","description":"Fell","amount":99999999999.99}
+            """.formatted(UUID.randomUUID());
+        mockMvc.perform(post("/api/claims")
+                        .header("X-Actor-Id", UUID.randomUUID().toString())
+                        .header("X-Actor-Role", "ANSPRUCHSTELLER")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(body))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.error.code").value("VALIDATION_ERROR"));
+    }
 }
