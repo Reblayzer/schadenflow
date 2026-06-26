@@ -1,5 +1,7 @@
 package ch.sumex.schadenflow.auth;
 
+import java.nio.charset.StandardCharsets;
+import java.util.Base64;
 import java.util.UUID;
 
 import ch.sumex.schadenflow.claim.Role;
@@ -15,6 +17,16 @@ class JwtServiceTest {
 
     private JwtService service(long minutes) {
         return new JwtService(SECRET, minutes);
+    }
+
+    @Test
+    void issuedTokenHasAlgHS256Header() {
+        JwtService jwt = service(60);
+        String token = jwt.issue(UUID.randomUUID(), "alice", Role.SACHBEARBEITER);
+        String headerJson = new String(
+                Base64.getUrlDecoder().decode(token.split("\\.")[0]),
+                StandardCharsets.UTF_8);
+        assertThat(headerJson).contains("\"alg\":\"HS256\"");
     }
 
     @Test
