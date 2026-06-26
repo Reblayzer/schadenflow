@@ -2,7 +2,6 @@ package ch.sumex.schadenflow.auth;
 
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
-import java.util.UUID;
 
 import ch.sumex.schadenflow.auth.dto.LoginResponse;
 import ch.sumex.schadenflow.user.User;
@@ -29,9 +28,7 @@ public class AuthService {
         if (!passwordEncoder.matches(password, user.getPasswordHash())) {
             throw new InvalidCredentialsException();
         }
-        // getId() may be null for Users not yet persisted (e.g. in unit tests); fall back to a random UUID.
-        UUID userId = user.getId() != null ? user.getId() : UUID.randomUUID();
-        String token = jwtService.issue(userId, user.getUsername(), user.getRole());
+        String token = jwtService.issue(user.getId(), user.getUsername(), user.getRole());
         Instant expiresAt = Instant.now().plus(jwtService.expirationMinutes(), ChronoUnit.MINUTES);
         return new LoginResponse(token, user.getUsername(), user.getRole(), expiresAt);
     }

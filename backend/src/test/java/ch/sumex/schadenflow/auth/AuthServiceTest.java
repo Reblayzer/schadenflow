@@ -6,8 +6,10 @@ import ch.sumex.schadenflow.user.User;
 import ch.sumex.schadenflow.user.UserRepository;
 import org.junit.jupiter.api.Test;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.test.util.ReflectionTestUtils;
 
 import java.util.Optional;
+import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -23,13 +25,16 @@ class AuthServiceTest {
     private final AuthService authService = new AuthService(userRepository, encoder, jwtService);
 
     private User userWithPassword(String username, Role role, String rawPassword) {
-        return new User(username, encoder.encode(rawPassword), role);
+        User user = new User(username, encoder.encode(rawPassword), role);
+        ReflectionTestUtils.setField(user, "id", UUID.randomUUID());
+        return user;
     }
 
     @Test
     void loginWithValidCredentialsReturnsToken() {
-        when(userRepository.findByUsername("admin"))
-                .thenReturn(Optional.of(userWithPassword("admin", Role.ADMIN, "password123")));
+        User admin = userWithPassword("admin", Role.ADMIN, "password123");
+        UUID adminId = admin.getId();
+        when(userRepository.findByUsername("admin")).thenReturn(Optional.of(admin));
 
         LoginResponse response = authService.login("admin", "password123");
 
@@ -37,6 +42,7 @@ class AuthServiceTest {
         assertThat(response.username()).isEqualTo("admin");
         assertThat(response.role()).isEqualTo(Role.ADMIN);
         assertThat(jwtService.parse(response.token()).role()).isEqualTo(Role.ADMIN);
+        assertThat(jwtService.parse(response.token()).userId()).isEqualTo(adminId);
     }
 
     @Test
