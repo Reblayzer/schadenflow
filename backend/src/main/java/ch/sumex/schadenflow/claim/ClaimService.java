@@ -8,6 +8,9 @@ import java.util.UUID;
 import ch.sumex.schadenflow.audit.AuditEntry;
 import ch.sumex.schadenflow.audit.AuditRepository;
 import ch.sumex.schadenflow.shared.DomainException;
+import ch.sumex.schadenflow.triage.TriageInput;
+import ch.sumex.schadenflow.triage.TriageResult;
+import ch.sumex.schadenflow.triage.TriageService;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -19,12 +22,14 @@ public class ClaimService {
     private final ClaimRepository claimRepository;
     private final AuditRepository auditRepository;
     private final ClaimStateMachine stateMachine;
+    private final TriageService triageService;
 
     public ClaimService(ClaimRepository claimRepository, AuditRepository auditRepository,
-                        ClaimStateMachine stateMachine) {
+                        ClaimStateMachine stateMachine, TriageService triageService) {
         this.claimRepository = claimRepository;
         this.auditRepository = auditRepository;
         this.stateMachine = stateMachine;
+        this.triageService = triageService;
     }
 
     @Transactional
@@ -89,6 +94,35 @@ public class ClaimService {
                 .orElseThrow(() -> new DomainException.NotFoundError("Claim %s not found".formatted(claimId)));
         assertCanAccess(claim, actorId, actorRole);
         return auditRepository.findByClaimIdOrderByOccurredAtAsc(claimId);
+    }
+
+    @Transactional(readOnly = true)
+    public TriageResult triage(UUID claimId, UUID actorId, Role actorRole) {
+        assertReviewer(actorRole);
+        Claim claim = claimRepository.findById(claimId)
+                .orElseThrow(() -> new DomainException.NotFoundError("Claim %s not found".formatted(claimId)));
+        if (claim.getState() != ClaimState.EINGEREICHT && claim.getState() != ClaimState.IN_PRUEFUNG) {
+            throw new DomainException.ValidationError("Triage nur vor der Entscheidung möglich");
+        }
+        return triageService.triage(new TriageInput(claim.getTitle(), claim.getDescription(), claim.getAmount()));
+    }
+
+    @Transactional
+    public Claim updateCategory(UUID claimId, Category category, String triageSummary,
+                                UUID actorId, Role actorRole) {
+        assertReviewer(actorRole);
+        Claim claim = claimRepository.findById(claimId)
+                .orElseThrow(() -> new DomainException.NotFoundError("Claim %s not found".formatted(claimId)));
+        claim.setCategory(category);
+        claim.setTriageSummary(triageSummary);
+        claim.setUpdatedAt(Instant.now());
+        return claimRepository.save(claim);
+    }
+
+    private void assertReviewer(Role actorRole) {
+        if (actorRole != Role.SACHBEARBEITER && actorRole != Role.ADMIN) {
+            throw new DomainException.ForbiddenError("Nur Sachbearbeiter oder Admin dürfen diese Aktion ausführen");
+        }
     }
 
     private void assertCanAccess(Claim claim, UUID actorId, Role actorRole) {

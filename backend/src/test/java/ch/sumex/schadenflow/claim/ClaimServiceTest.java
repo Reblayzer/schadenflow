@@ -9,6 +9,8 @@ import java.util.UUID;
 import ch.sumex.schadenflow.audit.AuditEntry;
 import ch.sumex.schadenflow.audit.AuditRepository;
 import ch.sumex.schadenflow.shared.DomainException;
+import ch.sumex.schadenflow.triage.MockTriageService;
+import ch.sumex.schadenflow.triage.TriageResult;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
@@ -34,10 +36,16 @@ class ClaimServiceTest {
     @Mock ClaimRepository claimRepository;
     @Mock AuditRepository auditRepository;
     @Spy ClaimStateMachine stateMachine = new ClaimStateMachine();
+    @Spy MockTriageService triageService = new MockTriageService();
     @InjectMocks ClaimService service;
 
     private Claim sampleClaim(ClaimState state) {
         return new Claim(UUID.randomUUID(), UUID.randomUUID(), "t", "d", null,
+                new BigDecimal("10.00"), state, Instant.now(), Instant.now());
+    }
+
+    private Claim sampleClaim(UUID id, ClaimState state) {
+        return new Claim(id, UUID.randomUUID(), "t", "d", null,
                 new BigDecimal("10.00"), state, Instant.now(), Instant.now());
     }
 
@@ -187,5 +195,57 @@ class ClaimServiceTest {
                 PageRequest.of(0, 20));
         assertThat(page.getTotalElements()).isEqualTo(1);
         assertThat(page.getContent().get(0).getClaimantId()).isEqualTo(owner);
+    }
+
+    // --- Triage and updateCategory tests ---
+
+    @Test
+    void triageReturnsSuggestionForReviewer() {
+        UUID claimId = UUID.randomUUID();
+        Claim claim = sampleClaim(claimId, ClaimState.EINGEREICHT);
+        when(claimRepository.findById(claimId)).thenReturn(Optional.of(claim));
+
+        TriageResult result = service.triage(claimId, UUID.randomUUID(), Role.SACHBEARBEITER);
+
+        assertThat(result.summary()).isNotBlank();
+        assertThat(result.suggestedCategory()).isNotNull();
+    }
+
+    @Test
+    void triageDeniedForClaimant() {
+        UUID claimId = UUID.randomUUID();
+        assertThatThrownBy(() -> service.triage(claimId, UUID.randomUUID(), Role.ANSPRUCHSTELLER))
+                .isInstanceOf(DomainException.ForbiddenError.class);
+    }
+
+    @Test
+    void triageRejectedAfterDecision() {
+        UUID claimId = UUID.randomUUID();
+        Claim claim = sampleClaim(claimId, ClaimState.GENEHMIGT);
+        when(claimRepository.findById(claimId)).thenReturn(Optional.of(claim));
+        assertThatThrownBy(() -> service.triage(claimId, UUID.randomUUID(), Role.SACHBEARBEITER))
+                .isInstanceOf(DomainException.ValidationError.class);
+    }
+
+    @Test
+    void updateCategoryAppliesValuesForReviewer() {
+        UUID claimId = UUID.randomUUID();
+        Claim claim = sampleClaim(claimId, ClaimState.IN_PRUEFUNG);
+        when(claimRepository.findById(claimId)).thenReturn(Optional.of(claim));
+        when(claimRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+
+        Claim updated = service.updateCategory(claimId, Category.ZAHNARZT, "Zusammenfassung",
+                UUID.randomUUID(), Role.SACHBEARBEITER);
+
+        assertThat(updated.getCategory()).isEqualTo(Category.ZAHNARZT);
+        assertThat(updated.getTriageSummary()).isEqualTo("Zusammenfassung");
+    }
+
+    @Test
+    void updateCategoryDeniedForClaimant() {
+        UUID claimId = UUID.randomUUID();
+        assertThatThrownBy(() -> service.updateCategory(claimId, Category.ZAHNARZT, null,
+                UUID.randomUUID(), Role.ANSPRUCHSTELLER))
+                .isInstanceOf(DomainException.ForbiddenError.class);
     }
 }

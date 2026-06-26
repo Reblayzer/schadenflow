@@ -7,6 +7,8 @@ import java.util.UUID;
 
 import ch.sumex.schadenflow.audit.AuditEntry;
 import ch.sumex.schadenflow.auth.AuthenticatedUser;
+import ch.sumex.schadenflow.triage.MissingInfoFlag;
+import ch.sumex.schadenflow.triage.TriageResult;
 import ch.sumex.schadenflow.auth.JwtAuthenticationFilter;
 import ch.sumex.schadenflow.auth.JwtService;
 import ch.sumex.schadenflow.auth.RestAccessDeniedHandler;
@@ -31,6 +33,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -176,5 +179,43 @@ class ClaimControllerTest {
                         .content(body))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.error.code").value("VALIDATION_ERROR"));
+    }
+
+    @Test
+    void triageReturns200ForReviewer() throws Exception {
+        when(service.triage(any(), any(), any())).thenReturn(new TriageResult(
+                "Zusammenfassung", Category.ZAHNARZT,
+                List.of(MissingInfoFlag.MISSING_DATE)));
+        mockMvc.perform(post("/api/claims/{id}/triage", UUID.randomUUID())
+                        .with(asUser(UUID.randomUUID(), Role.SACHBEARBEITER)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.ok").value(true))
+                .andExpect(jsonPath("$.data.suggestedCategory").value("ZAHNARZT"));
+    }
+
+    @Test
+    void triageWithoutAuthReturns401() throws Exception {
+        mockMvc.perform(post("/api/claims/{id}/triage", UUID.randomUUID()))
+                .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    void patchUpdatesCategory() throws Exception {
+        when(service.updateCategory(any(), any(), any(), any(), any())).thenReturn(sample());
+        String body = "{\"category\":\"ZAHNARZT\",\"triageSummary\":\"Zusammenfassung\"}";
+        mockMvc.perform(patch("/api/claims/{id}", UUID.randomUUID())
+                        .with(asUser(UUID.randomUUID(), Role.SACHBEARBEITER))
+                        .contentType(MediaType.APPLICATION_JSON).content(body))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.ok").value(true));
+    }
+
+    @Test
+    void patchWithInvalidCategoryReturns400() throws Exception {
+        String body = "{\"category\":\"NOT_A_CATEGORY\",\"triageSummary\":\"x\"}";
+        mockMvc.perform(patch("/api/claims/{id}", UUID.randomUUID())
+                        .with(asUser(UUID.randomUUID(), Role.SACHBEARBEITER))
+                        .contentType(MediaType.APPLICATION_JSON).content(body))
+                .andExpect(status().isBadRequest());
     }
 }
