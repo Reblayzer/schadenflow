@@ -28,10 +28,10 @@ public class ClaimService {
     }
 
     @Transactional
-    public Claim create(UUID claimantId, String title, String description, BigDecimal amount,
+    public Claim create(String title, String description, BigDecimal amount,
                         UUID actorId, Role actorRole) {
         Instant now = Instant.now();
-        Claim claim = new Claim(UUID.randomUUID(), claimantId, title, description, null, amount,
+        Claim claim = new Claim(UUID.randomUUID(), actorId, title, description, null, amount,
                 ClaimState.EINGEREICHT, now, now);
         Claim saved = claimRepository.save(claim);
         auditRepository.save(new AuditEntry(UUID.randomUUID(), saved.getId(), null,
@@ -44,6 +44,7 @@ public class ClaimService {
                             UUID actorId, Role actorRole) {
         Claim claim = claimRepository.findById(claimId)
                 .orElseThrow(() -> new DomainException.NotFoundError("Claim %s not found".formatted(claimId)));
+        assertCanAccess(claim, actorId, actorRole);
         ClaimState from = claim.getState();
         stateMachine.validateTransition(from, targetState, actorRole);
         if (targetState == ClaimState.ABGELEHNT && (reason == null || reason.isBlank())) {
@@ -59,30 +60,40 @@ public class ClaimService {
     }
 
     @Transactional(readOnly = true)
-    public Claim getById(UUID claimId) {
-        return claimRepository.findById(claimId)
+    public Claim getById(UUID claimId, UUID actorId, Role actorRole) {
+        Claim claim = claimRepository.findById(claimId)
                 .orElseThrow(() -> new DomainException.NotFoundError("Claim %s not found".formatted(claimId)));
+        assertCanAccess(claim, actorId, actorRole);
+        return claim;
     }
 
     @Transactional(readOnly = true)
-    public Page<Claim> list(ClaimState state, UUID claimantId, Pageable pageable) {
-        if (state != null && claimantId != null) {
-            return claimRepository.findByStateAndClaimantId(state, claimantId, pageable);
+    public Page<Claim> list(ClaimState state, UUID claimantId, UUID actorId, Role actorRole,
+                            Pageable pageable) {
+        UUID effectiveClaimant = actorRole == Role.ANSPRUCHSTELLER ? actorId : claimantId;
+        if (state != null && effectiveClaimant != null) {
+            return claimRepository.findByStateAndClaimantId(state, effectiveClaimant, pageable);
         }
         if (state != null) {
             return claimRepository.findByState(state, pageable);
         }
-        if (claimantId != null) {
-            return claimRepository.findByClaimantId(claimantId, pageable);
+        if (effectiveClaimant != null) {
+            return claimRepository.findByClaimantId(effectiveClaimant, pageable);
         }
         return claimRepository.findAll(pageable);
     }
 
     @Transactional(readOnly = true)
-    public List<AuditEntry> getAudit(UUID claimId) {
-        if (!claimRepository.existsById(claimId)) {
-            throw new DomainException.NotFoundError("Claim %s not found".formatted(claimId));
-        }
+    public List<AuditEntry> getAudit(UUID claimId, UUID actorId, Role actorRole) {
+        Claim claim = claimRepository.findById(claimId)
+                .orElseThrow(() -> new DomainException.NotFoundError("Claim %s not found".formatted(claimId)));
+        assertCanAccess(claim, actorId, actorRole);
         return auditRepository.findByClaimIdOrderByOccurredAtAsc(claimId);
+    }
+
+    private void assertCanAccess(Claim claim, UUID actorId, Role actorRole) {
+        if (actorRole == Role.ANSPRUCHSTELLER && !claim.getClaimantId().equals(actorId)) {
+            throw new DomainException.ForbiddenError("You may only access your own claims");
+        }
     }
 }
