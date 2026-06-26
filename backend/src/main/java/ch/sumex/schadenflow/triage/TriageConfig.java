@@ -12,4 +12,13 @@ public class TriageConfig {
     public TriageService mockTriageService() {
         return new MockTriageService();
     }
+
+    @Bean
+    @ConditionalOnProperty(name = "schadenflow.triage.provider", havingValue = "claude")
+    public TriageService anthropicTriageService(
+            @org.springframework.beans.factory.annotation.Value("${schadenflow.triage.model}") String model) {
+        com.anthropic.client.AnthropicClient client =
+                com.anthropic.client.okhttp.AnthropicOkHttpClient.fromEnv();
+        return new AnthropicTriageService(client, model);
+    }
 }
