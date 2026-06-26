@@ -57,4 +57,21 @@ class ClaimPersistenceIT {
         assertThat(claimRepository.findByState(ClaimState.EINGEREICHT, Pageable.unpaged()))
                 .anyMatch(c -> c.getId().equals(claimId));
     }
+
+    @Test
+    void categoryEnumAndTriageSummaryRoundTrip() {
+        UUID claimId = UUID.randomUUID();
+        UUID claimantId = UUID.randomUUID();
+        Instant now = Instant.now();
+
+        Claim claim = claimRepository.save(new Claim(claimId, claimantId, "Tooth repair",
+                "Crown needed", null, new BigDecimal("800.00"), ClaimState.EINGEREICHT, now, now));
+        claim.setCategory(Category.ZAHNARZT);
+        claim.setTriageSummary("Patient benötigt eine neue Zahnkrone.");
+        claimRepository.save(claim);
+
+        Claim reloaded = claimRepository.findById(claim.getId()).orElseThrow();
+        assertThat(reloaded.getCategory()).isEqualTo(Category.ZAHNARZT);
+        assertThat(reloaded.getTriageSummary()).isEqualTo("Patient benötigt eine neue Zahnkrone.");
+    }
 }
