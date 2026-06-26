@@ -26,8 +26,12 @@ public class Claim {
     @Column(nullable = false)
     private String description;
 
+    @Enumerated(EnumType.STRING)
     @Column(length = 100)
-    private String category;
+    private Category category;
+
+    @Column(name = "triage_summary", length = 2000)
+    private String triageSummary;
 
     @Column(nullable = false, precision = 12, scale = 2)
     private BigDecimal amount;
@@ -45,7 +49,7 @@ public class Claim {
     protected Claim() { }
 
     public Claim(UUID id, UUID claimantId, String title, String description,
-                 String category, BigDecimal amount, ClaimState state,
+                 Category category, BigDecimal amount, ClaimState state,
                  Instant createdAt, Instant updatedAt) {
         this.id = id;
         this.claimantId = claimantId;
@@ -62,13 +66,15 @@ public class Claim {
     public UUID getClaimantId() { return claimantId; }
     public String getTitle() { return title; }
     public String getDescription() { return description; }
-    public String getCategory() { return category; }
+    public Category getCategory() { return category; }
+    public String getTriageSummary() { return triageSummary; }
     public BigDecimal getAmount() { return amount; }
     public ClaimState getState() { return state; }
     public Instant getCreatedAt() { return createdAt; }
     public Instant getUpdatedAt() { return updatedAt; }
 
-    public void setCategory(String category) { this.category = category; }
+    public void setCategory(Category category) { this.category = category; }
+    public void setTriageSummary(String triageSummary) { this.triageSummary = triageSummary; }
     public void setState(ClaimState state) { this.state = state; }
     public void setUpdatedAt(Instant updatedAt) { this.updatedAt = updatedAt; }
 }

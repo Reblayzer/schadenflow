@@ -8,6 +8,8 @@ import ch.sumex.schadenflow.claim.dto.AuditEntryResponse;
 import ch.sumex.schadenflow.claim.dto.ClaimResponse;
 import ch.sumex.schadenflow.claim.dto.CreateClaimRequest;
 import ch.sumex.schadenflow.claim.dto.TransitionRequest;
+import ch.sumex.schadenflow.claim.dto.TriageResponse;
+import ch.sumex.schadenflow.claim.dto.UpdateClaimRequest;
 import ch.sumex.schadenflow.shared.ApiResponse;
 import jakarta.validation.Valid;
 import org.springframework.data.domain.Page;
@@ -17,6 +19,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -80,5 +83,20 @@ public class ClaimController {
         List<AuditEntryResponse> entries = service.getAudit(id, actor.userId(), actor.role()).stream()
                 .map(AuditEntryResponse::from).toList();
         return ApiResponse.ok(entries);
+    }
+
+    @PostMapping("/{id}/triage")
+    public ApiResponse<TriageResponse> triage(@PathVariable UUID id,
+            @AuthenticationPrincipal AuthenticatedUser actor) {
+        return ApiResponse.ok(TriageResponse.from(service.triage(id, actor.userId(), actor.role())));
+    }
+
+    @PatchMapping("/{id}")
+    public ApiResponse<ClaimResponse> updateCategory(@PathVariable UUID id,
+            @Valid @RequestBody UpdateClaimRequest request,
+            @AuthenticationPrincipal AuthenticatedUser actor) {
+        Claim claim = service.updateCategory(id, request.category(), request.triageSummary(),
+                actor.userId(), actor.role());
+        return ApiResponse.ok(ClaimResponse.from(claim));
     }
 }

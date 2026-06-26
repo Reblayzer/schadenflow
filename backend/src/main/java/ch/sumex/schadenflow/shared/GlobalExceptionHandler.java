@@ -68,6 +68,15 @@ public class GlobalExceptionHandler {
         return build(HttpStatus.UNAUTHORIZED, "INVALID_CREDENTIALS", ex.getMessage());
     }
 
+    @ExceptionHandler(ch.sumex.schadenflow.triage.TriageUnavailableException.class)
+    public ResponseEntity<ApiResponse<Object>> handleTriageUnavailable(
+            ch.sumex.schadenflow.triage.TriageUnavailableException ex) {
+        // Log details server-side; return a generic message so no provider/key detail leaks.
+        org.slf4j.LoggerFactory.getLogger(GlobalExceptionHandler.class)
+                .warn("Triage unavailable", ex);
+        return build(HttpStatus.SERVICE_UNAVAILABLE, "TRIAGE_UNAVAILABLE", "Triage service is unavailable");
+    }
+
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ApiResponse<Object>> handleUncaught(Exception ex) {
         // Log details server-side; return a generic message to the client.
