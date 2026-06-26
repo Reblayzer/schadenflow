@@ -60,7 +60,7 @@ public class MockTriageService implements TriageService {
                 || lower.contains("spital") || lower.contains("optiker") || lower.contains("therapeut"))) {
             flags.add(MissingInfoFlag.MISSING_PROVIDER);
         }
-        return flags;
+        return List.copyOf(flags);
     }
 
     private String summarize(String description) {

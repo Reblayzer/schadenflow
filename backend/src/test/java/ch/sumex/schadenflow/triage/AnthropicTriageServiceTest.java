@@ -1,9 +1,12 @@
 package ch.sumex.schadenflow.triage;
 
 import java.math.BigDecimal;
+import java.util.List;
 
 import ch.sumex.schadenflow.claim.Category;
 import com.anthropic.client.AnthropicClient;
+import com.anthropic.models.messages.ContentBlock;
+import com.anthropic.models.messages.TextBlock;
 import com.anthropic.services.blocking.MessageService;
 import org.junit.jupiter.api.Test;
 
@@ -23,6 +26,25 @@ class AnthropicTriageServiceTest {
     private AnthropicTriageService service() {
         when(client.messages()).thenReturn(messages);
         return new AnthropicTriageService(client, "claude-opus-4-8");
+    }
+
+    @Test
+    void extractsAndConcatenatesTextFromResponseContent() {
+        // Mirrors the SDK-call path: response.content() -> text blocks -> concatenated JSON.
+        List<ContentBlock> content = List.of(
+                ContentBlock.ofText(textBlock("{\"summary\":\"Zahn\",")),
+                ContentBlock.ofText(textBlock("\"suggestedCategory\":\"ZAHNARZT\",\"missingInfoFlags\":[\"MISSING_DATE\"]}")));
+
+        String text = AnthropicTriageService.extractText(content);
+
+        TriageResult result = new AnthropicTriageService(client, "claude-opus-4-8").parseResponseJson(text);
+        assertThat(result.summary()).isEqualTo("Zahn");
+        assertThat(result.suggestedCategory()).isEqualTo(Category.ZAHNARZT);
+        assertThat(result.missingInfoFlags()).containsExactly(MissingInfoFlag.MISSING_DATE);
+    }
+
+    private static TextBlock textBlock(String text) {
+        return TextBlock.builder().text(text).citations(List.of()).build();
     }
 
     @Test

@@ -5,8 +5,10 @@ import java.util.List;
 
 import ch.sumex.schadenflow.claim.Category;
 import com.anthropic.client.AnthropicClient;
+import com.anthropic.models.messages.ContentBlock;
 import com.anthropic.models.messages.Message;
 import com.anthropic.models.messages.MessageCreateParams;
+import com.anthropic.models.messages.TextBlock;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
@@ -36,11 +38,7 @@ public class AnthropicTriageService implements TriageService {
                     .addUserMessage(prompt)
                     .build();
             Message response = client.messages().create(params);
-            String text = response.content().stream()
-                    .flatMap(block -> block.text().stream())
-                    .map(t -> t.text())
-                    .reduce("", String::concat);
-            return parseResponseJson(text);
+            return parseResponseJson(extractText(response.content()));
         } catch (TriageUnavailableException ex) {
             throw ex;
         } catch (RuntimeException ex) {
@@ -60,6 +58,13 @@ public class AnthropicTriageService implements TriageService {
                 Betrag: %s
                 """.formatted(CATEGORY_VALUES, FLAG_VALUES,
                         input.title(), input.description(), String.valueOf(input.amount()));
+    }
+
+    static String extractText(List<ContentBlock> content) {
+        return content.stream()
+                .flatMap(block -> block.text().stream())
+                .map(TextBlock::text)
+                .reduce("", String::concat);
     }
 
     TriageResult parseResponseJson(String json) {
