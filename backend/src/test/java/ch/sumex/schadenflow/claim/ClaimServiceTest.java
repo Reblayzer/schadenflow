@@ -1,6 +1,8 @@
 package ch.sumex.schadenflow.claim;
 
 import java.math.BigDecimal;
+import java.time.Instant;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -112,5 +114,33 @@ class ClaimServiceTest {
         UUID id = UUID.randomUUID();
         when(claimRepository.findById(id)).thenReturn(Optional.empty());
         assertThatThrownBy(() -> service.getById(id)).isInstanceOf(DomainException.NotFoundError.class);
+    }
+
+    @Test
+    void getAuditThrowsNotFoundWhenClaimAbsent() {
+        UUID id = UUID.randomUUID();
+        when(claimRepository.existsById(id)).thenReturn(false);
+        assertThatThrownBy(() -> service.getAudit(id))
+                .isInstanceOf(DomainException.NotFoundError.class);
+    }
+
+    @Test
+    void getAuditReturnsOrderedEntries() {
+        UUID claimId = UUID.randomUUID();
+        UUID actor = UUID.randomUUID();
+        Instant t1 = Instant.parse("2025-01-01T10:00:00Z");
+        Instant t2 = Instant.parse("2025-01-01T11:00:00Z");
+        List<AuditEntry> ordered = List.of(
+                new AuditEntry(UUID.randomUUID(), claimId, null, ClaimState.EINGEREICHT,
+                        actor, Role.ANSPRUCHSTELLER, null, t1),
+                new AuditEntry(UUID.randomUUID(), claimId, ClaimState.EINGEREICHT, ClaimState.IN_PRUEFUNG,
+                        actor, Role.SACHBEARBEITER, null, t2)
+        );
+        when(claimRepository.existsById(claimId)).thenReturn(true);
+        when(auditRepository.findByClaimIdOrderByOccurredAtAsc(claimId)).thenReturn(ordered);
+
+        List<AuditEntry> result = service.getAudit(claimId);
+
+        assertThat(result).containsExactlyElementsOf(ordered);
     }
 }
