@@ -2,10 +2,13 @@ package ch.sumex.schadenflow.claim;
 
 import java.math.BigDecimal;
 import java.time.Instant;
+import java.util.List;
 import java.util.UUID;
 
+import ch.sumex.schadenflow.audit.AuditEntry;
 import ch.sumex.schadenflow.shared.DomainException;
 import ch.sumex.schadenflow.shared.GlobalExceptionHandler;
+import org.springframework.data.domain.PageImpl;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
@@ -94,5 +97,38 @@ class ClaimControllerTest {
         mockMvc.perform(get("/api/claims/{id}", id).accept(MediaType.APPLICATION_JSON))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.error.code").value("NOT_FOUND"));
+    }
+
+    @Test
+    void listReturns200WithPagedEnvelope() throws Exception {
+        Claim c = sample();
+        when(service.list(any(), any(), any())).thenReturn(new PageImpl<>(List.of(c)));
+        mockMvc.perform(get("/api/claims").accept(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.ok").value(true))
+                .andExpect(jsonPath("$.data.content[0].state").value("EINGEREICHT"));
+    }
+
+    @Test
+    void auditReturns200WithEntries() throws Exception {
+        UUID id = UUID.randomUUID();
+        AuditEntry entry = new AuditEntry(UUID.randomUUID(), id, null, ClaimState.EINGEREICHT,
+                UUID.randomUUID(), Role.ANSPRUCHSTELLER, null, Instant.now());
+        when(service.getAudit(id)).thenReturn(List.of(entry));
+        mockMvc.perform(get("/api/claims/{id}/audit", id).accept(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.ok").value(true))
+                .andExpect(jsonPath("$.data[0].toState").value("EINGEREICHT"))
+                .andExpect(jsonPath("$.data[0].occurredAt").exists());
+    }
+
+    @Test
+    void getByIdReturns200WithClaim() throws Exception {
+        Claim c = sample();
+        when(service.getById(c.getId())).thenReturn(c);
+        mockMvc.perform(get("/api/claims/{id}", c.getId()).accept(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.ok").value(true))
+                .andExpect(jsonPath("$.data.state").value("EINGEREICHT"));
     }
 }
