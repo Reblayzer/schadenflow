@@ -23,6 +23,7 @@ services:
       SPRING_DATASOURCE_URL: jdbc:postgresql://db:5432/schadenflow
       SPRING_DATASOURCE_USERNAME: schadenflow
       SPRING_DATASOURCE_PASSWORD: schadenflow
+      SECURITY_JWT_SECRET: ${SECURITY_JWT_SECRET:-dev-only-insecure-secret-change-me-0123456789}
     ports:
       - "8080:8080"
     depends_on:

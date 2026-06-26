@@ -62,6 +62,12 @@ public class GlobalExceptionHandler {
         return build(HttpStatus.UNSUPPORTED_MEDIA_TYPE, "UNSUPPORTED_MEDIA_TYPE", ex.getMessage());
     }
 
+    @ExceptionHandler(ch.sumex.schadenflow.auth.InvalidCredentialsException.class)
+    public ResponseEntity<ApiResponse<Object>> handleInvalidCredentials(
+            ch.sumex.schadenflow.auth.InvalidCredentialsException ex) {
+        return build(HttpStatus.UNAUTHORIZED, "INVALID_CREDENTIALS", ex.getMessage());
+    }
+
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ApiResponse<Object>> handleUncaught(Exception ex) {
         // Log details server-side; return a generic message to the client.
