@@ -34,6 +34,19 @@ docker compose up --build
 - API health: <http://localhost:8080/api/health>
 - Frontend: <http://localhost:4200>
 
+### Frontend dev server
+
+For live frontend development against a locally-running API:
+
+```bash
+cd frontend
+npm ci
+npm start          # ng serve on http://localhost:4200, proxies /api -> http://localhost:8080
+```
+
+Start the backend separately (`docker compose up backend db`, or run the Spring
+Boot app). The Angular dev server proxies `/api` via `frontend/proxy.conf.json`.
+
 ## Running tests
 
 ```bash
@@ -152,5 +165,7 @@ your environment before running `docker compose up`.
 
 ## Status
 
-Sub-project 1 (infra & skeleton) complete. See `docs/superpowers/specs/` for the
-v1 design and sub-project roadmap.
+Sub-projects 1–5 complete: infra & skeleton, claim domain + state machine,
+security (JWT), AI triage, and the Angular frontend (login, dashboard, claim
+detail + workflow, AI-confirm, audit). See `docs/superpowers/specs/` for the
+design and roadmap.
