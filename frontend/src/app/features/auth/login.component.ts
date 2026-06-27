@@ -6,6 +6,7 @@ import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatButtonModule } from '@angular/material/button';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
+import { finalize } from 'rxjs/operators';
 import { AuthService } from '../../core/auth/auth.service';
 import { NotifyService } from '../../shared/notify.service';
 import { errorMessage } from '../../shared/claim-labels';
@@ -64,15 +65,11 @@ export class LoginComponent {
     }
     const { username, password } = this.form.getRawValue();
     this.loading.set(true);
-    this.auth.login(username, password).subscribe({
-      next: () => {
-        this.loading.set(false);
-        this.router.navigateByUrl('/claims');
-      },
-      error: (err) => {
-        this.loading.set(false);
-        this.notify.error(errorMessage(err));
-      },
-    });
+    this.auth.login(username, password)
+      .pipe(finalize(() => this.loading.set(false)))
+      .subscribe({
+        next: () => this.router.navigateByUrl('/claims'),
+        error: (err) => this.notify.error(errorMessage(err)),
+      });
   }
 }
