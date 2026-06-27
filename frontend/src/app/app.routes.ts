@@ -25,8 +25,8 @@ export const routes: Routes = [
         path: 'claims/new',
         canActivate: [roleGuard([Role.ANSPRUCHSTELLER])],
         loadComponent: () =>
-          import('./features/claims/dashboard/claim-dashboard.component').then(
-            (m) => m.ClaimDashboardComponent,
+          import('./features/claims/create/claim-create.component').then(
+            (m) => m.ClaimCreateComponent,
           ),
       },
       {
