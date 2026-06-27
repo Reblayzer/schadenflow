@@ -12,6 +12,7 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.testcontainers.containers.PostgreSQLContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
+import org.springframework.test.context.ActiveProfiles;
 
 import java.util.UUID;
 
@@ -25,6 +26,7 @@ import ch.sumex.schadenflow.auth.JwtService;
 @SpringBootTest
 @AutoConfigureMockMvc
 @Testcontainers
+@ActiveProfiles("dev")
 class ClaimFlowIT {
 
     @Container
