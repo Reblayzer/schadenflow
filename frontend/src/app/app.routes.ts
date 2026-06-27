@@ -32,8 +32,8 @@ export const routes: Routes = [
       {
         path: 'claims/:id',
         loadComponent: () =>
-          import('./features/claims/dashboard/claim-dashboard.component').then(
-            (m) => m.ClaimDashboardComponent,
+          import('./features/claims/detail/claim-detail.component').then(
+            (m) => m.ClaimDetailComponent,
           ),
       },
       { path: '', pathMatch: 'full', redirectTo: 'claims' },
