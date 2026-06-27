@@ -1,6 +1,12 @@
-# Frontend
+# Schadenflow frontend
 
-This project was generated using [Angular CLI](https://github.com/angular/angular-cli) version 19.2.27.
+Angular 19 (standalone + signals) + Angular Material SPA over the Schadenflow REST
+API. Covers login, the role-aware claim dashboard, claim detail with the workflow
+state machine, the advisory AI-triage "confirm" treatment, and the audit trail.
+
+API calls are relative (`/api/...`): in dev, `ng serve` proxies them to
+`http://localhost:8080` via `proxy.conf.json`; in Docker, nginx proxies them to
+the `backend` service.
 
 ## Development server
 
