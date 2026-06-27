@@ -88,4 +88,36 @@ describe('LoginComponent', () => {
     localComponent.submit();
     expect(navSpy).toHaveBeenCalledWith('/claims/42');
   });
+
+  it('falls back to /claims for a protocol-relative returnUrl (open-redirect guard)', async () => {
+    await TestBed.resetTestingModule();
+    auth = jasmine.createSpyObj<AuthService>('AuthService', ['login']);
+    notify = jasmine.createSpyObj<NotifyService>('NotifyService', ['error']);
+    await TestBed.configureTestingModule({
+      imports: [LoginComponent],
+      providers: [
+        provideRouter([]),
+        provideAnimations(),
+        { provide: AuthService, useValue: auth },
+        { provide: NotifyService, useValue: notify },
+        {
+          provide: ActivatedRoute,
+          useValue: {
+            snapshot: { queryParamMap: convertToParamMap({ returnUrl: '//evil.com' }) },
+          },
+        },
+      ],
+    }).compileComponents();
+    const localFixture = TestBed.createComponent(LoginComponent);
+    const localComponent = localFixture.componentInstance;
+    const localRouter = TestBed.inject(Router);
+    localFixture.detectChanges();
+    const navSpy = spyOn(localRouter, 'navigateByUrl');
+    auth.login.and.returnValue(
+      of({ token: 't', username: 'admin', role: Role.ADMIN, expiresAt: '' }),
+    );
+    localComponent.form.setValue({ username: 'admin', password: 'password123' });
+    localComponent.submit();
+    expect(navSpy).toHaveBeenCalledWith('/claims');
+  });
 });

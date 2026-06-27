@@ -59,6 +59,11 @@ export class LoginComponent {
     password: ['', Validators.required],
   });
 
+  private safeReturnUrl(): string {
+    const requested = this.route.snapshot.queryParamMap.get('returnUrl');
+    return requested && requested.startsWith('/') && !requested.startsWith('//') ? requested : '/claims';
+  }
+
   submit(): void {
     if (this.form.invalid) {
       this.form.markAllAsTouched();
@@ -70,8 +75,7 @@ export class LoginComponent {
       .pipe(finalize(() => this.loading.set(false)))
       .subscribe({
         next: () => {
-          const returnUrl = this.route.snapshot.queryParamMap.get('returnUrl') ?? '/claims';
-          this.router.navigateByUrl(returnUrl);
+          this.router.navigateByUrl(this.safeReturnUrl());
         },
         error: (err) => this.notify.error(errorMessage(err)),
       });
