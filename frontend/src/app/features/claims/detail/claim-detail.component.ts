@@ -1,6 +1,6 @@
 import { Component, DestroyRef, computed, inject, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { ActivatedRoute } from '@angular/router';
+import { ActivatedRoute, RouterLink } from '@angular/router';
 import { CurrencyPipe, DatePipe } from '@angular/common';
 import { MatCardModule } from '@angular/material/card';
 import { MatButtonModule } from '@angular/material/button';
@@ -23,11 +23,11 @@ import { Claim, ClaimState } from '../../../core/models/claim.models';
   standalone: true,
   imports: [
     CurrencyPipe, DatePipe, MatCardModule, MatButtonModule, MatChipsModule,
-    ClaimStatePipe, CategoryPipe,
+    ClaimStatePipe, CategoryPipe, RouterLink,
   ],
   template: `
     @if (claim(); as c) {
-      <a href="/claims" style="display:inline-block;margin-bottom:1rem">&larr; Zurück</a>
+      <a routerLink="/claims" style="display:inline-block;margin-bottom:1rem">&larr; Zurück</a>
       <mat-card>
         <mat-card-header>
           <mat-card-title>{{ c.title }}</mat-card-title>
@@ -92,6 +92,7 @@ export class ClaimDetailComponent {
       this.dialog
         .open(ConfirmDialogComponent, { data, width: '420px' })
         .afterClosed()
+        .pipe(takeUntilDestroyed(this.destroyRef))
         .subscribe((result: ConfirmDialogResult | undefined) => {
           if (result?.confirmed) {
             this.doTransition(option.target, result.reason);
