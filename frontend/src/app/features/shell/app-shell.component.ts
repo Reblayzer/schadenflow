@@ -1,5 +1,5 @@
 import { Component, computed, inject } from '@angular/core';
-import { RouterLink, RouterOutlet } from '@angular/router';
+import { Router, RouterLink, RouterOutlet } from '@angular/router';
 import { MatToolbarModule } from '@angular/material/toolbar';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
@@ -30,6 +30,7 @@ import { Role } from '../../core/models/claim.models';
 })
 export class AppShellComponent {
   private readonly auth = inject(AuthService);
+  private readonly router = inject(Router);
   readonly user = this.auth.currentUser;
   readonly isClaimant = computed(() => this.auth.role() === Role.ANSPRUCHSTELLER);
   readonly roleText = computed(() => {
@@ -39,5 +40,6 @@ export class AppShellComponent {
 
   logout(): void {
     this.auth.logout();
+    this.router.navigateByUrl('/login');
   }
 }

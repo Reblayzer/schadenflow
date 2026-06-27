@@ -1,5 +1,5 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { provideRouter, Router } from '@angular/router';
+import { ActivatedRoute, convertToParamMap, provideRouter, Router } from '@angular/router';
 import { of, throwError } from 'rxjs';
 import { LoginComponent } from './login.component';
 import { AuthService } from '../../core/auth/auth.service';
@@ -55,5 +55,37 @@ describe('LoginComponent', () => {
     component.form.setValue({ username: '', password: '' });
     component.submit();
     expect(auth.login).not.toHaveBeenCalled();
+  });
+
+  it('navigates to returnUrl when present in query params', async () => {
+    await TestBed.resetTestingModule();
+    auth = jasmine.createSpyObj<AuthService>('AuthService', ['login']);
+    notify = jasmine.createSpyObj<NotifyService>('NotifyService', ['error']);
+    await TestBed.configureTestingModule({
+      imports: [LoginComponent],
+      providers: [
+        provideRouter([]),
+        provideAnimations(),
+        { provide: AuthService, useValue: auth },
+        { provide: NotifyService, useValue: notify },
+        {
+          provide: ActivatedRoute,
+          useValue: {
+            snapshot: { queryParamMap: convertToParamMap({ returnUrl: '/claims/42' }) },
+          },
+        },
+      ],
+    }).compileComponents();
+    const localFixture = TestBed.createComponent(LoginComponent);
+    const localComponent = localFixture.componentInstance;
+    const localRouter = TestBed.inject(Router);
+    localFixture.detectChanges();
+    const navSpy = spyOn(localRouter, 'navigateByUrl');
+    auth.login.and.returnValue(
+      of({ token: 't', username: 'admin', role: Role.ADMIN, expiresAt: '' }),
+    );
+    localComponent.form.setValue({ username: 'admin', password: 'password123' });
+    localComponent.submit();
+    expect(navSpy).toHaveBeenCalledWith('/claims/42');
   });
 });

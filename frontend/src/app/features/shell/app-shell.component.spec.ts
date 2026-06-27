@@ -1,5 +1,5 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { provideRouter } from '@angular/router';
+import { provideRouter, Router } from '@angular/router';
 import { signal } from '@angular/core';
 import { AppShellComponent } from './app-shell.component';
 import { AuthService } from '../../core/auth/auth.service';
@@ -35,12 +35,15 @@ describe('AppShellComponent', () => {
     expect(text).not.toContain('Neuer Schaden');
   });
 
-  it('calls logout when the logout button is clicked', () => {
+  it('calls logout and navigates to /login when the logout button is clicked', () => {
     setup(Role.ADMIN);
+    const router = TestBed.inject(Router);
+    const navSpy = spyOn(router, 'navigateByUrl');
     const btn = (fixture.nativeElement as HTMLElement).querySelector(
       '[data-test="logout"]',
     ) as HTMLButtonElement;
     btn.click();
     expect(auth.logout).toHaveBeenCalled();
+    expect(navSpy).toHaveBeenCalledWith('/login');
   });
 });
