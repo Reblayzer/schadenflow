@@ -91,14 +91,18 @@ describe('ClaimDetailComponent', () => {
   it('requesting triage stores the advisory result without applying it', () => {
     setup(Role.SACHBEARBEITER, ClaimState.EINGEREICHT);
     claims.triage.and.returnValue(
-      of({ summary: 'Zahn-Summary', suggestedCategory: Category.ZAHNARZT, missingInfoFlags: [] }),
+      of({ summary: 'Zahn-Summary', suggestedCategory: Category.SPITAL, missingInfoFlags: [] }),
     );
     fixture.componentInstance.requestTriage();
     expect(claims.triage).toHaveBeenCalledWith('1');
     expect(fixture.componentInstance.triage()!.summary).toBe('Zahn-Summary');
+    // advisory result is held:
+    expect(fixture.componentInstance.triage()!.suggestedCategory).toBe(Category.SPITAL);
+    // pre-filled into the editable field, but not applied to the claim:
+    expect(fixture.componentInstance.selectedCategory()).toBe(Category.SPITAL);
     // nothing persisted yet:
     expect(claims.confirmCategory).not.toHaveBeenCalled();
-    expect(fixture.componentInstance.claim()!.category).toBe(Category.ZAHNARZT); // unchanged seed value
+    expect(fixture.componentInstance.claim()!.category).toBe(Category.ZAHNARZT); // unchanged seed value — now meaningful since suggestion differs
   });
 
   it('confirming category PATCHes the chosen values and updates the claim', () => {
