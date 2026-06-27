@@ -11,17 +11,18 @@ import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatSelectModule } from '@angular/material/select';
 import { MatInputModule } from '@angular/material/input';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
+import { MatListModule } from '@angular/material/list';
 import { ClaimsService } from '../data/claims.service';
 import { AuthService } from '../../../core/auth/auth.service';
 import { NotifyService } from '../../../shared/notify.service';
-import { errorMessage, claimStateColor, flagLabel, categoryLabel, ALL_CATEGORIES } from '../../../shared/claim-labels';
+import { errorMessage, claimStateColor, flagLabel, categoryLabel, ALL_CATEGORIES, roleLabel } from '../../../shared/claim-labels';
 import { availableTransitions, TransitionOption } from '../../../shared/transitions';
 import { ClaimStatePipe } from '../../../shared/claim-state.pipe';
 import { CategoryPipe } from '../../../shared/category.pipe';
 import {
   ConfirmDialogComponent, ConfirmDialogData, ConfirmDialogResult,
 } from '../../../shared/confirm-dialog.component';
-import { Claim, ClaimState, Role, MissingInfoFlag, Category, TriageResult } from '../../../core/models/claim.models';
+import { Claim, ClaimState, Role, MissingInfoFlag, Category, TriageResult, AuditEntry } from '../../../core/models/claim.models';
 
 @Component({
   selector: 'app-claim-detail',
@@ -29,7 +30,7 @@ import { Claim, ClaimState, Role, MissingInfoFlag, Category, TriageResult } from
   imports: [
     CurrencyPipe, DatePipe, MatCardModule, MatButtonModule, MatChipsModule,
     ClaimStatePipe, CategoryPipe, RouterLink,
-    FormsModule, MatFormFieldModule, MatSelectModule, MatInputModule, MatProgressBarModule,
+    FormsModule, MatFormFieldModule, MatSelectModule, MatInputModule, MatProgressBarModule, MatListModule,
   ],
   template: `
     @if (claim(); as c) {
@@ -100,6 +101,28 @@ import { Claim, ClaimState, Role, MissingInfoFlag, Category, TriageResult } from
           </mat-card-content>
         }
       </mat-card>
+      <mat-card style="margin-top:1.5rem">
+        <mat-card-header><mat-card-title>Verlauf (Audit)</mat-card-title></mat-card-header>
+        <mat-card-content>
+          @if (auditEntries().length === 0) {
+            <p>Noch keine Einträge.</p>
+          } @else {
+            <mat-list>
+              @for (e of auditEntries(); track e.id) {
+                <mat-list-item>
+                  <span matListItemTitle>
+                    {{ e.fromState ? (e.fromState | claimState) : '—' }} → {{ e.toState | claimState }}
+                  </span>
+                  <span matListItemLine>
+                    {{ roleText(e.actorRole) }} · {{ e.occurredAt | date: 'medium' }}
+                    @if (e.reason) { · {{ e.reason }} }
+                  </span>
+                </mat-list-item>
+              }
+            </mat-list>
+          }
+        </mat-card-content>
+      </mat-card>
     }
   `,
 })
@@ -124,6 +147,7 @@ export class ClaimDetailComponent {
   });
 
   readonly allCategories = ALL_CATEGORIES;
+  readonly auditEntries = signal<AuditEntry[]>([]);
   readonly triage = signal<TriageResult | null>(null);
   readonly triageLoading = signal(false);
   readonly confirming = signal(false);
@@ -140,10 +164,15 @@ export class ClaimDetailComponent {
 
   constructor() {
     this.reload();
+    this.loadAudit();
   }
 
   stateColor(s: ClaimState) {
     return claimStateColor(s);
+  }
+
+  roleText(r: Role) {
+    return roleLabel(r);
   }
 
   flagText(f: MissingInfoFlag) {
@@ -215,9 +244,17 @@ export class ClaimDetailComponent {
     this.claims.transition(this.id, target, reason).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (updated) => {
         this.claim.set(updated);
+        this.loadAudit();
         this.notify.success('Status aktualisiert.');
       },
       error: (err) => this.notify.error(errorMessage(err)),
+    });
+  }
+
+  private loadAudit(): void {
+    this.claims.audit(this.id).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
+      next: (entries) => this.auditEntries.set([...entries].reverse()),
+      error: () => {},
     });
   }
 

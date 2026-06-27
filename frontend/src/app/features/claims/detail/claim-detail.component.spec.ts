@@ -116,4 +116,22 @@ describe('ClaimDetailComponent', () => {
     expect(claims.confirmCategory).toHaveBeenCalledWith('1', Category.SPITAL, 'final');
     expect(fixture.componentInstance.claim()!.category).toBe(Category.SPITAL);
   });
+
+  it('loads and renders the audit trail', () => {
+    setup(Role.SACHBEARBEITER, ClaimState.IN_PRUEFUNG);
+    claims.audit.calls.reset();
+    claims.audit.and.returnValue(
+      of([
+        {
+          id: 'a1', claimId: '1', fromState: ClaimState.EINGEREICHT, toState: ClaimState.IN_PRUEFUNG,
+          actorId: 'r1', actorRole: Role.SACHBEARBEITER, reason: null, occurredAt: '2026-06-27T10:00:00Z',
+        },
+      ]),
+    );
+    fixture.componentInstance['loadAudit']();
+    fixture.detectChanges();
+    const text = (fixture.nativeElement as HTMLElement).textContent ?? '';
+    expect(text).toContain('Eingereicht');
+    expect(text).toContain('In Prüfung');
+  });
 });
