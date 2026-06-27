@@ -1,4 +1,5 @@
-import { Component, computed, inject, signal } from '@angular/core';
+import { Component, computed, DestroyRef, inject, signal } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { Router } from '@angular/router';
 import { CurrencyPipe, DatePipe } from '@angular/common';
 import { MatTableModule } from '@angular/material/table';
@@ -83,6 +84,7 @@ export class ClaimDashboardComponent {
   private readonly auth = inject(AuthService);
   private readonly notify = inject(NotifyService);
   private readonly router = inject(Router);
+  private readonly destroyRef = inject(DestroyRef);
 
   readonly columns = ['title', 'category', 'amount', 'state', 'updatedAt'];
   readonly allStates = ALL_STATES;
@@ -128,16 +130,18 @@ export class ClaimDashboardComponent {
       filters.state = this.state()!;
     }
     this.loading.set(true);
-    this.claims.list(filters, this.pageIndex(), this.size).subscribe({
-      next: (page) => {
-        this.rows.set(page.content);
-        this.total.set(page.totalElements);
-        this.loading.set(false);
-      },
-      error: (err) => {
-        this.loading.set(false);
-        this.notify.error(errorMessage(err));
-      },
-    });
+    this.claims.list(filters, this.pageIndex(), this.size)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (page) => {
+          this.rows.set(page.content);
+          this.total.set(page.totalElements);
+          this.loading.set(false);
+        },
+        error: (err) => {
+          this.loading.set(false);
+          this.notify.error(errorMessage(err));
+        },
+      });
   }
 }
