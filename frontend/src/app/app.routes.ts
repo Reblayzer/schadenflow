@@ -9,29 +9,35 @@ export const routes: Routes = [
     loadComponent: () => import('./features/auth/login.component').then((m) => m.LoginComponent),
   },
   {
-    path: 'claims',
+    path: '',
+    loadComponent: () =>
+      import('./features/shell/app-shell.component').then((m) => m.AppShellComponent),
     canActivate: [authGuard],
-    loadComponent: () =>
-      import('./features/claims/dashboard/claim-dashboard.component').then(
-        (m) => m.ClaimDashboardComponent,
-      ),
+    children: [
+      {
+        path: 'claims',
+        loadComponent: () =>
+          import('./features/claims/dashboard/claim-dashboard.component').then(
+            (m) => m.ClaimDashboardComponent,
+          ),
+      },
+      {
+        path: 'claims/new',
+        canActivate: [roleGuard([Role.ANSPRUCHSTELLER])],
+        loadComponent: () =>
+          import('./features/claims/dashboard/claim-dashboard.component').then(
+            (m) => m.ClaimDashboardComponent,
+          ),
+      },
+      {
+        path: 'claims/:id',
+        loadComponent: () =>
+          import('./features/claims/dashboard/claim-dashboard.component').then(
+            (m) => m.ClaimDashboardComponent,
+          ),
+      },
+      { path: '', pathMatch: 'full', redirectTo: 'claims' },
+    ],
   },
-  {
-    path: 'claims/new',
-    canActivate: [authGuard, roleGuard([Role.ANSPRUCHSTELLER])],
-    loadComponent: () =>
-      import('./features/claims/dashboard/claim-dashboard.component').then(
-        (m) => m.ClaimDashboardComponent,
-      ),
-  },
-  {
-    path: 'claims/:id',
-    canActivate: [authGuard],
-    loadComponent: () =>
-      import('./features/claims/dashboard/claim-dashboard.component').then(
-        (m) => m.ClaimDashboardComponent,
-      ),
-  },
-  { path: '', pathMatch: 'full', redirectTo: 'claims' },
   { path: '**', redirectTo: 'claims' },
 ];
