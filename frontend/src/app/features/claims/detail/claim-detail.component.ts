@@ -6,17 +6,22 @@ import { MatCardModule } from '@angular/material/card';
 import { MatButtonModule } from '@angular/material/button';
 import { MatChipsModule } from '@angular/material/chips';
 import { MatDialog } from '@angular/material/dialog';
+import { FormsModule } from '@angular/forms';
+import { MatFormFieldModule } from '@angular/material/form-field';
+import { MatSelectModule } from '@angular/material/select';
+import { MatInputModule } from '@angular/material/input';
+import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { ClaimsService } from '../data/claims.service';
 import { AuthService } from '../../../core/auth/auth.service';
 import { NotifyService } from '../../../shared/notify.service';
-import { errorMessage, claimStateColor } from '../../../shared/claim-labels';
+import { errorMessage, claimStateColor, flagLabel, categoryLabel, ALL_CATEGORIES } from '../../../shared/claim-labels';
 import { availableTransitions, TransitionOption } from '../../../shared/transitions';
 import { ClaimStatePipe } from '../../../shared/claim-state.pipe';
 import { CategoryPipe } from '../../../shared/category.pipe';
 import {
   ConfirmDialogComponent, ConfirmDialogData, ConfirmDialogResult,
 } from '../../../shared/confirm-dialog.component';
-import { Claim, ClaimState } from '../../../core/models/claim.models';
+import { Claim, ClaimState, Role, MissingInfoFlag, Category, TriageResult } from '../../../core/models/claim.models';
 
 @Component({
   selector: 'app-claim-detail',
@@ -24,6 +29,7 @@ import { Claim, ClaimState } from '../../../core/models/claim.models';
   imports: [
     CurrencyPipe, DatePipe, MatCardModule, MatButtonModule, MatChipsModule,
     ClaimStatePipe, CategoryPipe, RouterLink,
+    FormsModule, MatFormFieldModule, MatSelectModule, MatInputModule, MatProgressBarModule,
   ],
   template: `
     @if (claim(); as c) {
@@ -49,6 +55,50 @@ import { Claim, ClaimState } from '../../../core/models/claim.models';
             }
           </mat-card-actions>
         }
+        @if (canTriage()) {
+          <mat-card-content class="triage-panel" style="border-top:1px solid rgba(0,0,0,.12);margin-top:1rem">
+            <h3>KI-Triage</h3>
+            <button mat-stroked-button color="primary" (click)="requestTriage()" [disabled]="triageLoading()">
+              KI-Triage anfordern
+            </button>
+            @if (triageLoading()) { <mat-progress-bar mode="indeterminate" /> }
+
+            @if (triage(); as t) {
+              <div class="advisory" data-test="advisory"
+                   style="margin-top:1rem;padding:1rem;border:1px dashed #f9a825;background:#fffde7;border-radius:8px">
+                <strong>KI-Vorschlag — bitte bestätigen</strong>
+                <p><em>Vorgeschlagene Kategorie:</em> {{ categoryText(t.suggestedCategory) }}</p>
+                <p><em>Zusammenfassung:</em> {{ t.summary }}</p>
+                @if (t.missingInfoFlags.length) {
+                  <p><em>Fehlende Angaben:</em></p>
+                  <mat-chip-set>
+                    @for (f of t.missingInfoFlags; track f) { <mat-chip>{{ flagText(f) }}</mat-chip> }
+                  </mat-chip-set>
+                }
+              </div>
+
+              <div style="margin-top:1rem">
+                <mat-form-field appearance="outline" style="width:100%">
+                  <mat-label>Kategorie bestätigen</mat-label>
+                  <mat-select [value]="selectedCategory()" (valueChange)="selectedCategory.set($event)">
+                    @for (c of allCategories; track c) {
+                      <mat-option [value]="c">{{ categoryText(c) }}</mat-option>
+                    }
+                  </mat-select>
+                </mat-form-field>
+                <mat-form-field appearance="outline" style="width:100%">
+                  <mat-label>Zusammenfassung</mat-label>
+                  <textarea matInput rows="3" [value]="confirmSummary()"
+                            (input)="confirmSummary.set($any($event.target).value)"></textarea>
+                </mat-form-field>
+                <button mat-raised-button color="accent"
+                        [disabled]="!selectedCategory() || confirming()" (click)="confirmCategory()">
+                  Kategorie bestätigen
+                </button>
+              </div>
+            }
+          </mat-card-content>
+        }
       </mat-card>
     }
   `,
@@ -73,12 +123,70 @@ export class ClaimDetailComponent {
     return availableTransitions(c.state, role);
   });
 
+  readonly allCategories = ALL_CATEGORIES;
+  readonly triage = signal<TriageResult | null>(null);
+  readonly triageLoading = signal(false);
+  readonly confirming = signal(false);
+  readonly selectedCategory = signal<Category | null>(null);
+  readonly confirmSummary = signal('');
+
+  readonly canTriage = computed(() => {
+    const c = this.claim();
+    const role = this.auth.role();
+    const reviewer = role === Role.SACHBEARBEITER || role === Role.ADMIN;
+    const preDecision = c?.state === ClaimState.EINGEREICHT || c?.state === ClaimState.IN_PRUEFUNG;
+    return !!c && reviewer && preDecision;
+  });
+
   constructor() {
     this.reload();
   }
 
   stateColor(s: ClaimState) {
     return claimStateColor(s);
+  }
+
+  flagText(f: MissingInfoFlag) {
+    return flagLabel(f);
+  }
+  categoryText(c: Category) {
+    return categoryLabel(c);
+  }
+
+  requestTriage(): void {
+    this.triageLoading.set(true);
+    this.claims.triage(this.id).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
+      next: (t) => {
+        this.triage.set(t);
+        this.selectedCategory.set(t.suggestedCategory); // pre-fill, NOT auto-applied
+        this.confirmSummary.set(t.summary);
+        this.triageLoading.set(false);
+      },
+      error: (err) => {
+        this.triageLoading.set(false);
+        this.notify.error(errorMessage(err));
+      },
+    });
+  }
+
+  confirmCategory(): void {
+    const category = this.selectedCategory();
+    if (!category) {
+      return;
+    }
+    this.confirming.set(true);
+    this.claims.confirmCategory(this.id, category, this.confirmSummary() || undefined).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
+      next: (updated) => {
+        this.claim.set(updated);
+        this.triage.set(null);
+        this.confirming.set(false);
+        this.notify.success('Kategorie bestätigt.');
+      },
+      error: (err) => {
+        this.confirming.set(false);
+        this.notify.error(errorMessage(err));
+      },
+    });
   }
 
   runTransition(option: TransitionOption): void {

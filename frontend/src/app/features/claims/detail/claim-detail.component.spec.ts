@@ -23,6 +23,7 @@ describe('ClaimDetailComponent', () => {
   let dialog: jasmine.SpyObj<MatDialog>;
 
   function setup(role: Role, state: ClaimState) {
+    TestBed.resetTestingModule();
     claims = jasmine.createSpyObj<ClaimsService>('ClaimsService', [
       'getById', 'transition', 'audit', 'triage', 'confirmCategory',
     ]);
@@ -76,5 +77,39 @@ describe('ClaimDetailComponent', () => {
     fixture.componentInstance.runTransition(reject);
     expect(dialog.open).toHaveBeenCalled();
     expect(claims.transition).toHaveBeenCalledWith('1', ClaimState.ABGELEHNT, 'nope');
+  });
+
+  it('exposes triage only for a reviewer on a pre-decision state', () => {
+    setup(Role.SACHBEARBEITER, ClaimState.EINGEREICHT);
+    expect(fixture.componentInstance.canTriage()).toBeTrue();
+    setup(Role.SACHBEARBEITER, ClaimState.GENEHMIGT);
+    expect(fixture.componentInstance.canTriage()).toBeFalse();
+    setup(Role.ANSPRUCHSTELLER, ClaimState.EINGEREICHT);
+    expect(fixture.componentInstance.canTriage()).toBeFalse();
+  });
+
+  it('requesting triage stores the advisory result without applying it', () => {
+    setup(Role.SACHBEARBEITER, ClaimState.EINGEREICHT);
+    claims.triage.and.returnValue(
+      of({ summary: 'Zahn-Summary', suggestedCategory: Category.ZAHNARZT, missingInfoFlags: [] }),
+    );
+    fixture.componentInstance.requestTriage();
+    expect(claims.triage).toHaveBeenCalledWith('1');
+    expect(fixture.componentInstance.triage()!.summary).toBe('Zahn-Summary');
+    // nothing persisted yet:
+    expect(claims.confirmCategory).not.toHaveBeenCalled();
+    expect(fixture.componentInstance.claim()!.category).toBe(Category.ZAHNARZT); // unchanged seed value
+  });
+
+  it('confirming category PATCHes the chosen values and updates the claim', () => {
+    setup(Role.SACHBEARBEITER, ClaimState.EINGEREICHT);
+    claims.confirmCategory.and.returnValue(
+      of({ ...claim(ClaimState.EINGEREICHT), category: Category.SPITAL, triageSummary: 'final' }),
+    );
+    fixture.componentInstance.selectedCategory.set(Category.SPITAL);
+    fixture.componentInstance.confirmSummary.set('final');
+    fixture.componentInstance.confirmCategory();
+    expect(claims.confirmCategory).toHaveBeenCalledWith('1', Category.SPITAL, 'final');
+    expect(fixture.componentInstance.claim()!.category).toBe(Category.SPITAL);
   });
 });
