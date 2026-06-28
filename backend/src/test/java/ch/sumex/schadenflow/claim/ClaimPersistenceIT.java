@@ -14,11 +14,13 @@ import org.springframework.boot.testcontainers.service.connection.ServiceConnect
 import org.testcontainers.containers.PostgreSQLContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
+import org.springframework.test.context.ActiveProfiles;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
 @SpringBootTest
 @Testcontainers
+@ActiveProfiles("dev")
 class ClaimPersistenceIT {
 
     @Container
