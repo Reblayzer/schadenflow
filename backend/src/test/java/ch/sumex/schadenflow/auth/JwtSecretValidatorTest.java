@@ -24,13 +24,15 @@ class JwtSecretValidatorTest {
     @Test
     void rejectsABlankSecret() {
         assertThatThrownBy(() -> JwtSecretValidator.validate("   "))
-                .isInstanceOf(IllegalStateException.class);
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("strong value");
     }
 
     @Test
     void rejectsNull() {
         assertThatThrownBy(() -> JwtSecretValidator.validate(null))
-                .isInstanceOf(IllegalStateException.class);
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("strong value");
     }
 
     @Test

@@ -29,4 +29,13 @@ class JwtSecretValidationConfigTest {
                         "security.jwt.secret=this-is-a-strong-secret-of-sufficient-length-1234")
                 .run(ctx -> assertThat(ctx).hasNotFailed());
     }
+
+    @Test
+    void contextStartsWithTheDevDefaultSecretUnderDevProfile() {
+        new ApplicationContextRunner()
+                .withUserConfiguration(JwtSecretValidationConfig.class)
+                .withInitializer(ctx -> ctx.getEnvironment().setActiveProfiles("dev"))
+                .withPropertyValues("security.jwt.secret=" + JwtSecretValidator.DEV_DEFAULT_SECRET)
+                .run(ctx -> assertThat(ctx).hasNotFailed());
+    }
 }
