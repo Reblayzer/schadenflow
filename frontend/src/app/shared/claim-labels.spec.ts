@@ -1,6 +1,6 @@
-import { ClaimState, Role, Category } from '../core/models/claim.models';
+import { ClaimState, Role, Category, MissingInfoFlag } from '../core/models/claim.models';
 import { ApiClientError } from '../core/api/api-error';
-import { claimStateLabel, categoryLabel, errorMessage } from './claim-labels';
+import { claimStateLabel, claimStateColor, categoryLabel, flagLabel, errorMessage } from './claim-labels';
 import { availableTransitions } from './transitions';
 
 describe('claim-labels', () => {
@@ -16,6 +16,16 @@ describe('claim-labels', () => {
   it('maps known error codes to friendly messages', () => {
     expect(errorMessage(new ApiClientError('INVALID_CREDENTIALS', 'x'))).toContain('Passwort');
     expect(errorMessage(new ApiClientError('TRIAGE_UNAVAILABLE', 'x'))).toContain('KI-Triage');
+  });
+
+  it('maps states to Material palette colors', () => {
+    expect(claimStateColor(ClaimState.ABGELEHNT)).toBe('warn');
+    expect(claimStateColor(ClaimState.IN_PRUEFUNG)).toBe('primary');
+    expect(claimStateColor(ClaimState.AUSBEZAHLT)).toBe('');
+  });
+
+  it('maps missing-info flags to German labels', () => {
+    expect(flagLabel(MissingInfoFlag.MISSING_AMOUNT)).toBe('Betrag fehlt');
   });
 });
 

@@ -55,9 +55,18 @@ describe('AuthService', () => {
       STORAGE_KEY,
       JSON.stringify({ token: 't', username: 'admin', role: Role.ADMIN, expiresAt: futureIso() }),
     );
-    const fresh = TestBed.inject(AuthService); // already constructed in beforeEach; re-create:
     const svc = new (AuthService as any)();
     expect(svc.isAuthenticated()).toBeTrue();
+  });
+
+  it('treats a session missing required fields (no token) as logged out and clears storage', () => {
+    localStorage.setItem(
+      STORAGE_KEY,
+      JSON.stringify({ username: 'admin', role: Role.ADMIN, expiresAt: futureIso() }),
+    );
+    const svc = new (AuthService as any)();
+    expect(svc.isAuthenticated()).toBeFalse();
+    expect(localStorage.getItem(STORAGE_KEY)).toBeNull();
   });
 
   it('treats an expired stored session as logged out and clears it', () => {

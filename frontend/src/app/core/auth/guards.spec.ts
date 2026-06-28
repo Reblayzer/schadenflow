@@ -59,4 +59,12 @@ describe('roleGuard', () => {
     expect(result instanceof UrlTree).toBeTrue();
     expect((result as UrlTree).toString()).toContain('/claims');
   });
+
+  it('redirects a null role (unauthenticated) to /claims', () => {
+    auth.role.and.returnValue(null);
+    const guard = roleGuard([Role.ANSPRUCHSTELLER]);
+    const result = run(() => guard({} as any, {} as any));
+    expect(result instanceof UrlTree).toBeTrue();
+    expect((result as UrlTree).toString()).toContain('/claims');
+  });
 });

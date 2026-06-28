@@ -46,10 +46,20 @@ describe('ClaimsService', () => {
     req.flush({ ok: true, data: { id: '1' } });
   });
 
+  it('getById GETs the claim by id and unwraps it', () => {
+    let result: unknown;
+    service.getById('1').subscribe((c) => (result = c));
+    const req = http.expectOne('/api/claims/1');
+    expect(req.request.method).toBe('GET');
+    req.flush({ ok: true, data: { id: '1' } });
+    expect((result as any).id).toBe('1');
+  });
+
   it('triage posts to the triage endpoint', () => {
     service.triage('1').subscribe();
     const req = http.expectOne('/api/claims/1/triage');
     expect(req.request.method).toBe('POST');
+    expect(req.request.body).toEqual({});
     req.flush({ ok: true, data: { summary: 's', suggestedCategory: 'ZAHNARZT', missingInfoFlags: [] } });
   });
 

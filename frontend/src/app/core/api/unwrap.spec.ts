@@ -26,6 +26,17 @@ describe('unwrap', () => {
       });
   });
 
+  it('errors with ApiClientError when data is undefined', (done) => {
+    of({ ok: true } as ApiResponse<number>)
+      .pipe(unwrap<number>())
+      .subscribe({
+        error: (e) => {
+          expect(e).toBeInstanceOf(ApiClientError);
+          done();
+        },
+      });
+  });
+
   it('converts an HttpErrorResponse body to ApiClientError', (done) => {
     const httpErr = new HttpErrorResponse({
       status: 401,

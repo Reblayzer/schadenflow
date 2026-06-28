@@ -6,7 +6,7 @@ import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatButtonModule } from '@angular/material/button';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
-import { finalize } from 'rxjs/operators';
+import { finalize } from 'rxjs';
 import { AuthService } from '../../core/auth/auth.service';
 import { NotifyService } from '../../shared/notify.service';
 import { errorMessage } from '../../shared/claim-labels';

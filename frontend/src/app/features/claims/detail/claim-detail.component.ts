@@ -82,8 +82,8 @@ import { Claim, ClaimState, Role, MissingInfoFlag, Category, TriageResult, Audit
                 <mat-form-field appearance="outline" style="width:100%">
                   <mat-label>Kategorie bestätigen</mat-label>
                   <mat-select [value]="selectedCategory()" (valueChange)="selectedCategory.set($event)">
-                    @for (c of allCategories; track c) {
-                      <mat-option [value]="c">{{ categoryText(c) }}</mat-option>
+                    @for (cat of allCategories; track cat) {
+                      <mat-option [value]="cat">{{ categoryText(cat) }}</mat-option>
                     }
                   </mat-select>
                 </mat-form-field>
