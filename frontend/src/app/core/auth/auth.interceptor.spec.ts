@@ -4,7 +4,6 @@ import { HttpTestingController, provideHttpClientTesting } from '@angular/common
 import { Router } from '@angular/router';
 import { authInterceptor } from './auth.interceptor';
 import { AuthService } from './auth.service';
-import { Role } from '../models/claim.models';
 
 describe('authInterceptor', () => {
   let http: HttpClient;
@@ -41,6 +40,25 @@ describe('authInterceptor', () => {
     auth.token.and.returnValue('abc');
     http.post('/api/auth/login', {}).subscribe();
     const req = httpMock.expectOne('/api/auth/login');
+    expect(req.request.headers.has('Authorization')).toBeFalse();
+    req.flush({ ok: true, data: {} });
+  });
+
+  it('does not logout or redirect on 401 from the login endpoint', () => {
+    auth.token.and.returnValue(null);
+    http.post('/api/auth/login', {}).subscribe({ error: () => {} });
+    httpMock.expectOne('/api/auth/login').flush(
+      { ok: false, error: { code: 'INVALID_CREDENTIALS', message: 'x' } },
+      { status: 401, statusText: 'Unauthorized' },
+    );
+    expect(auth.logout).not.toHaveBeenCalled();
+    expect(router.navigate).not.toHaveBeenCalled();
+  });
+
+  it('sends no Authorization header when token is null', () => {
+    auth.token.and.returnValue(null);
+    http.get('/api/claims').subscribe();
+    const req = httpMock.expectOne('/api/claims');
     expect(req.request.headers.has('Authorization')).toBeFalse();
     req.flush({ ok: true, data: {} });
   });

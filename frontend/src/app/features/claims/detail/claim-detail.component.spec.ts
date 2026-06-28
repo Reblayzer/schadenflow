@@ -88,6 +88,11 @@ describe('ClaimDetailComponent', () => {
     expect(fixture.componentInstance.canTriage()).toBeFalse();
   });
 
+  it('canTriage is also true for ADMIN on IN_PRUEFUNG', () => {
+    setup(Role.ADMIN, ClaimState.IN_PRUEFUNG);
+    expect(fixture.componentInstance.canTriage()).toBeTrue();
+  });
+
   it('requesting triage stores the advisory result without applying it', () => {
     setup(Role.SACHBEARBEITER, ClaimState.EINGEREICHT);
     claims.triage.and.returnValue(

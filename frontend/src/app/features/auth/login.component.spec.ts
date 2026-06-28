@@ -48,7 +48,7 @@ describe('LoginComponent', () => {
     auth.login.and.returnValue(throwError(() => new ApiClientError('INVALID_CREDENTIALS', 'x')));
     component.form.setValue({ username: 'admin', password: 'wrong' });
     component.submit();
-    expect(notify.error).toHaveBeenCalled();
+    expect(notify.error).toHaveBeenCalledWith(jasmine.any(String));
   });
 
   it('does not submit an invalid form', () => {

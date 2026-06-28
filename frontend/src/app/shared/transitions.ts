@@ -1,5 +1,4 @@
 import { ClaimState, Role } from '../core/models/claim.models';
-import { claimStateLabel } from './claim-labels';
 
 export interface TransitionOption {
   target: ClaimState;
@@ -30,6 +29,3 @@ export function availableTransitions(from: ClaimState, role: Role): TransitionOp
   }));
 }
 
-export function transitionLabelFor(target: ClaimState): string {
-  return claimStateLabel(target);
-}

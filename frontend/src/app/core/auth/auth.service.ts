@@ -3,7 +3,6 @@ import { HttpClient } from '@angular/common/http';
 import { Observable, tap } from 'rxjs';
 import { ApiResponse } from '../api/api-response.model';
 import { unwrap } from '../api/unwrap';
-import { Role } from '../models/claim.models';
 import { AuthUser } from './auth.models';
 
 const STORAGE_KEY = 'schadenflow.auth';
@@ -49,6 +48,10 @@ export class AuthService {
     try {
       const user = JSON.parse(raw) as AuthUser;
       if (!user.expiresAt || new Date(user.expiresAt).getTime() <= Date.now()) {
+        localStorage.removeItem(STORAGE_KEY);
+        return null;
+      }
+      if (!user.token || !user.username || !user.role) {
         localStorage.removeItem(STORAGE_KEY);
         return null;
       }

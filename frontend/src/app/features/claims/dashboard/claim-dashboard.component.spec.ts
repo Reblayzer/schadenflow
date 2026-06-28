@@ -73,4 +73,11 @@ describe('ClaimDashboardComponent', () => {
       jasmine.any(Number),
     );
   });
+
+  it('re-queries with the new page index and size on onPage', () => {
+    setup(Role.SACHBEARBEITER);
+    claims.list.calls.reset();
+    fixture.componentInstance.onPage({ pageIndex: 2, pageSize: 50 } as any);
+    expect(claims.list).toHaveBeenCalledWith(jasmine.any(Object), 2, 50);
+  });
 });
